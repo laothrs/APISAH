@@ -365,11 +365,42 @@ class SahibindenScraper:
                     baslik = ilan.find("a", class_="classifiedTitle").text.strip()
                     fiyat = ilan.find("td", class_="searchResultsPriceValue").text.strip()
                     konum = ilan.find("td", class_="searchResultsLocationValue").text.strip()
+                    tarih = ilan.find("td", class_="searchResultsDateValue").text.strip()
+                    
+                    # İlan detaylarını bul
+                    detaylar = ilan.find_all("td", class_="searchResultsAttributeValue")
+                    
+                    # Varsayılan değerler
+                    metrekare = "Belirtilmemiş"
+                    oda_sayisi = "Belirtilmemiş"
+                    isitma_tipi = "Belirtilmemiş"
+                    kat_sayisi = "Belirtilmemiş"
+                    bina_yasi = "Belirtilmemiş"
+                    
+                    # Detayları kontrol et ve değerleri güncelle
+                    for detay in detaylar:
+                        detay_text = detay.text.strip()
+                        if "m²" in detay_text:
+                            metrekare = detay_text
+                        elif "+" in detay_text or "Stüdyo" in detay_text:
+                            oda_sayisi = detay_text
+                        elif any(tip in detay_text for tip in ["Kombi", "Soba", "Merkezi", "Klima", "Isıtma"]):
+                            isitma_tipi = detay_text
+                        elif ". Kat" in detay_text:
+                            kat_sayisi = detay_text
+                        elif "Yaşında" in detay_text or "Sıfır Bina" in detay_text:
+                            bina_yasi = detay_text
                     
                     ilan_bilgisi = {
                         "baslik": baslik,
                         "fiyat": fiyat,
-                        "konum": konum
+                        "konum": konum,
+                        "tarih": tarih,
+                        "metrekare": metrekare,
+                        "oda_sayisi": oda_sayisi,
+                        "isitma_tipi": isitma_tipi,
+                        "kat_sayisi": kat_sayisi,
+                        "bina_yasi": bina_yasi
                     }
                     
                     self.ilanlar.append(ilan_bilgisi)
@@ -396,6 +427,8 @@ class SahibindenScraper:
             
     def filtreli_url_olustur(self, kategori, base_url, **kwargs):
         """Seçilen filtrelere göre URL oluşturur"""
+        print(f"[Debug] URL oluşturuluyor... Kategori: {kategori}, Parametreler: {kwargs}")
+        
         if kategori == "Cep Telefonu":
             # Cep telefonu için URL oluşturma
             url_parcalari = [base_url]
@@ -417,20 +450,28 @@ class SahibindenScraper:
             durum = kwargs.get('durum')
             sehir = kwargs.get('sehir')
             
+            print(f"[Debug] Emlak parametreleri - Ana Kategori: {ana_kategori}, Durum: {durum}, Şehir: {sehir}")
+            
             # Base URL'yi oluştur
             url_parcalari = ["https://www.sahibinden.com"]
             
             # URL'yi oluştur
-            url_parcalari.append(self.kategoriler["Emlak"]["alt_kategoriler"][ana_kategori]["durumlar"][durum])
+            if ana_kategori and durum:
+                try:
+                    url_parcalari.append(durum)  # Direkt durum değerini kullan
+                except Exception as e:
+                    print(f"[Hata] URL oluşturulurken hata: {e}")
             
             # Şehir ekle
             if sehir:
-                # Şehir adını küçük harfe çevir ve Türkçe karakterleri değiştir
-                sehir = sehir.lower().replace('ı', 'i').replace('ğ', 'g').replace('ü', 'u').replace('ş', 's').replace('ö', 'o').replace('ç', 'c')
-                url_parcalari.append(sehir)
+                try:
+                    # Şehir plaka kodunu kullan
+                    url_parcalari.append(f"?address_city={sehir}")
+                except Exception as e:
+                    print(f"[Hata] Şehir eklenirken hata: {e}")
         
         # URL'yi birleştir
-        url = "/".join(url_parcalari)
+        url = "/".join([p for p in url_parcalari if p and not p.startswith('?')])
         
         # Filtreleri ekle
         filtreler = []
@@ -458,6 +499,10 @@ class SahibindenScraper:
                     filtreler.append(f"a5943={oda_sayisi}")
                 if isitma_tipi:
                     filtreler.append(f"a5946={isitma_tipi}")
+                
+                # Şehir filtresi
+                if sehir and not any(p.startswith('?address_city=') for p in url_parcalari):
+                    filtreler.append(f"address_city={sehir}")
         
         # Sayfalama için offset
         offset = kwargs.get('offset')
@@ -466,8 +511,9 @@ class SahibindenScraper:
             
         # Filtreleri URL'ye ekle
         if filtreler:
-            url = url + "?" + "&".join(filtreler)
+            url = url + ('&' if '?' in url else '?') + "&".join(filtreler)
             
+        print(f"[Debug] Oluşturulan URL: {url}")
         return url
         
     def veri_topla_filtreli(self, kategori, **kwargs):

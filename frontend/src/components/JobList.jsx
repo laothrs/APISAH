@@ -12,7 +12,13 @@ import {
   IconButton,
   Box,
   Collapse,
-  Button
+  Button,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Checkbox,
+  ListItemText
 } from '@mui/material'
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown'
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp'
@@ -21,6 +27,7 @@ import axios from 'axios'
 function Row({ job_id, data }) {
   const [open, setOpen] = useState(false)
   const [details, setDetails] = useState(null)
+  const [selectedFields, setSelectedFields] = useState(['baslik', 'fiyat', 'konum', 'tarih', 'metrekare', 'oda_sayisi', 'isitma_tipi', 'kat_sayisi', 'bina_yasi'])
 
   useEffect(() => {
     if (open && !details) {
@@ -45,6 +52,22 @@ function Row({ job_id, data }) {
 
   const formatDate = (timestamp) => {
     return new Date(timestamp * 1000).toLocaleString('tr-TR')
+  }
+
+  const handleFieldChange = (event) => {
+    setSelectedFields(event.target.value)
+  }
+
+  const fieldLabels = {
+    baslik: 'İlan Başlığı',
+    fiyat: 'Fiyat',
+    konum: 'Konum',
+    tarih: 'İlan Tarihi',
+    metrekare: 'Metrekare',
+    oda_sayisi: 'Oda Sayısı',
+    isitma_tipi: 'Isıtma Tipi',
+    kat_sayisi: 'Kat',
+    bina_yasi: 'Bina Yaşı'
   }
 
   return (
@@ -94,12 +117,34 @@ function Row({ job_id, data }) {
                       Hata: {details.error}
                     </Typography>
                   )}
+                  <FormControl sx={{ m: 1, minWidth: 200 }}>
+                    <InputLabel>Gösterilecek Alanlar</InputLabel>
+                    <Select
+                      multiple
+                      value={selectedFields}
+                      onChange={handleFieldChange}
+                      renderValue={(selected) => selected.map(field => fieldLabels[field]).join(', ')}
+                    >
+                      {Object.entries(fieldLabels).map(([field, label]) => (
+                        <MenuItem key={field} value={field}>
+                          <Checkbox checked={selectedFields.includes(field)} />
+                          <ListItemText primary={label} />
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
                   <Typography variant="subtitle2" gutterBottom>
-                    Parametreler:
+                    İlan Detayları:
                   </Typography>
-                  <pre style={{ background: '#f5f5f5', padding: 10 }}>
-                    {JSON.stringify(data.params, null, 2)}
-                  </pre>
+                  {details.items && details.items.map((item, index) => (
+                    <Box key={index} sx={{ mb: 1, p: 1, bgcolor: '#f5f5f5' }}>
+                      {selectedFields.map(field => (
+                        <Typography key={field} variant="body2">
+                          {fieldLabels[field]}: {item[field]}
+                        </Typography>
+                      ))}
+                    </Box>
+                  ))}
                 </>
               )}
             </Box>
