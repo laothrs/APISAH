@@ -265,26 +265,21 @@ class SahibindenScraper:
                 
             html_content = self.chromium_page.html
             
-            # Cookie'leri al
-            cookies = self.chromium_page.cookies
-            
             # Yeni sekme aç
             self.driver.execute_script("window.open('');")
             yeni_sekme = self.driver.window_handles[-1]
             self.driver.switch_to.window(yeni_sekme)
             
-            # Cookie'leri yeni sekmeye aktar
-            for cookie in cookies.items():
-                try:
-                    cookie_dict = {
-                        'name': cookie[0],
-                        'value': cookie[1],
-                        'domain': '.sahibinden.com',
-                        'path': '/'
-                    }
-                    self.driver.add_cookie(cookie_dict)
-                except Exception as e:
-                    print(f"[Uyarı] Cookie eklenirken hata: {e}")
+            # Temel cookie'leri ekle
+            try:
+                self.driver.add_cookie({
+                    'name': 'cf_clearance',
+                    'value': self.cf_bypasser.cf_clearance,
+                    'domain': '.sahibinden.com',
+                    'path': '/'
+                })
+            except Exception as e:
+                print(f"[Uyarı] Cloudflare cookie eklenirken hata: {e}")
             
             # Yeni sekmede URL'i yükle
             self.driver.get(url)
