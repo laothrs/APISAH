@@ -266,7 +266,7 @@ class SahibindenScraper:
             html_content = self.chromium_page.html
             
             # Cookie'leri al
-            cookies = self.chromium_page.get_cookies()
+            cookies = self.chromium_page.cookies
             
             # Yeni sekme aç
             self.driver.execute_script("window.open('');")
@@ -274,9 +274,15 @@ class SahibindenScraper:
             self.driver.switch_to.window(yeni_sekme)
             
             # Cookie'leri yeni sekmeye aktar
-            for cookie in cookies:
+            for cookie in cookies.items():
                 try:
-                    self.driver.add_cookie(cookie)
+                    cookie_dict = {
+                        'name': cookie[0],
+                        'value': cookie[1],
+                        'domain': '.sahibinden.com',
+                        'path': '/'
+                    }
+                    self.driver.add_cookie(cookie_dict)
                 except Exception as e:
                     print(f"[Uyarı] Cookie eklenirken hata: {e}")
             
