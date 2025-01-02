@@ -1,6 +1,6 @@
-# Sahibinden.com Veri Çekme API'si
+# Veri Çekme API'si
 
-Bu proje, Sahibinden.com üzerinden cep telefonu ve emlak kategorilerindeki ilanları otomatik olarak çekebilen bir API ve web arayüzü sunar.
+Bu proje,  üzerinden cep telefonu ve emlak kategorilerindeki ilanları otomatik olarak çekebilen bir API ve web arayüzü sunar.
 
 ## Özellikler
 
