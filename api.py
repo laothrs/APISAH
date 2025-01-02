@@ -16,7 +16,13 @@ job_counter = 0
 def scraping_worker(job_id, kategori, **kwargs):
     try:
         scraper = SahibindenScraper(headless=True)
-        scraper.veri_topla_filtreli(kategori=kategori, **kwargs)
+        
+        # Şehir parametresi yoksa tüm illeri tara
+        if 'sehir' not in kwargs and kategori == "Emlak":
+            scraper.tum_illeri_tara(kategori=kategori, **kwargs)
+        else:
+            scraper.veri_topla_filtreli(kategori=kategori, **kwargs)
+            
         job_results[job_id] = {
             "status": "completed",
             "data": scraper.ilanlar,
@@ -82,17 +88,24 @@ def scrape_estate():
         "kategori": "Emlak",
         "ana_kategori": data.get('ana_kategori'),  # Konut, Daire, Arsa
         "durum": data.get('durum'),  # Satılık, Kiralık
-        "sehir": data.get('sehir'),
         "oda_sayisi": data.get('oda_sayisi'),
         "isitma_tipi": data.get('isitma_tipi')
     }
+
+    # Eğer tüm_iller seçili değilse şehir parametresini ekle
+    if not data.get('tum_iller'):
+        params["sehir"] = data.get('sehir')
     
     # Yeni job ID oluştur
     job_id = f"job_{job_counter}"
     job_counter += 1
     
     # Scraping işlemini başlat
-    thread = threading.Thread(target=scraping_worker, args=(job_id,), kwargs=params)
+    thread = threading.Thread(
+        target=scraping_worker, 
+        args=(job_id,), 
+        kwargs=params
+    )
     thread.start()
     
     active_jobs[job_id] = {

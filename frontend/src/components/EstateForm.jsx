@@ -8,7 +8,9 @@ import {
   MenuItem,
   Button,
   Snackbar,
-  Alert
+  Alert,
+  FormControlLabel,
+  Checkbox
 } from '@mui/material'
 import axios from 'axios'
 import { cities } from '../data/cities'
@@ -20,7 +22,8 @@ function EstateForm() {
     durum: '',
     sehir: '',
     oda_sayisi: '',
-    isitma_tipi: ''
+    isitma_tipi: '',
+    tum_iller: false
   })
 
   const [durumlar, setDurumlar] = useState({})
@@ -54,7 +57,16 @@ function EstateForm() {
   const handleSubmit = async (event) => {
     event.preventDefault()
     try {
-      const response = await axios.post('http://127.0.0.1:5000/api/scrape/estate', formData)
+      const requestData = {
+        ana_kategori: formData.ana_kategori,
+        durum: formData.durum,
+        sehir: formData.tum_iller ? null : formData.sehir,
+        oda_sayisi: formData.oda_sayisi,
+        isitma_tipi: formData.isitma_tipi,
+        tum_iller: formData.tum_iller
+      }
+
+      const response = await axios.post('http://127.0.0.1:5000/api/scrape/estate', requestData)
       setSnackbar({
         open: true,
         message: `İşlem başlatıldı! İşlem ID: ${response.data.job_id}`,
@@ -127,6 +139,7 @@ function EstateForm() {
                 value={formData.sehir}
                 onChange={handleChange}
                 label="Şehir"
+                disabled={formData.tum_iller}
               >
                 <MenuItem value="">
                   <em>Seçiniz</em>
@@ -138,6 +151,25 @@ function EstateForm() {
                 ))}
               </Select>
             </FormControl>
+          </Grid>
+
+          <Grid item xs={12}>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={formData.tum_iller}
+                  onChange={(e) => {
+                    setFormData(prev => ({
+                      ...prev,
+                      tum_iller: e.target.checked,
+                      sehir: e.target.checked ? '' : prev.sehir
+                    }))
+                  }}
+                  name="tum_iller"
+                />
+              }
+              label="Tüm illeri tara (Ankara'dan başlayarak)"
+            />
           </Grid>
 
           {showRoomAndHeating && (

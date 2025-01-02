@@ -5,12 +5,27 @@ Bu proje, Sahibinden.com üzerinden cep telefonu ve emlak kategorilerindeki ilan
 ## Özellikler
 
 - Cep telefonu ve emlak ilanlarını filtreleme ve çekme
+- Tüm illeri otomatik tarama (Ankara'dan başlayarak)
+- Her il için 50 sayfa veri çekme
+- Türkçe karakter desteği
 - Asenkron işlem yönetimi
 - İşlem durumu takibi
 - Modern web arayüzü
 - Cloudflare bypass desteği
 - Bot tespiti engelleme
 - Otomatik veri kaydetme
+- Düzenli klasör yapısı
+
+## Klasör Yapısı
+
+```
+JSONLAR/
+  └── TumIllerSatilikDaire/
+      ├── Ankara.json
+      ├── Istanbul.json
+      ├── Izmir.json
+      └── ...
+```
 
 ## Gereksinimler
 
@@ -82,6 +97,7 @@ npm run dev
   - sehir (string): Şehir adı
   - oda_sayisi (string): Oda sayısı kodu
   - isitma_tipi (string): Isıtma tipi kodu
+  - tum_iller (boolean): Tüm illeri tarama seçeneği
 
 ### İşlem Durumu
 - **Endpoint:** `/api/status/<job_id>`

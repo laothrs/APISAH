@@ -39,6 +39,8 @@ class SahibindenScraper:
         self.chrome_options.add_argument('--disable-notifications')
         self.chrome_options.add_argument('--disable-popup-blocking')
         
+        # Türkçe karakter dönüşüm tablosu
+        self.tr_to_eng = str.maketrans('çğıöşüÇĞİÖŞÜ', 'cgioscCGIOSU')
         
         # Rastgele User-Agent
         self.user_agents = [
@@ -326,7 +328,6 @@ class SahibindenScraper:
             if not self.yeni_sekmede_ac(url):
                 if deneme < self.max_deneme:
                     print(f"[Uyarı] Sayfa açılamadı, {deneme + 1}. deneme yapılıyor...")
-                    self.rastgele_bekleme(1, 2)
                     return self.sayfa_verilerini_cek(url, deneme + 1)
                 return
             
@@ -338,7 +339,6 @@ class SahibindenScraper:
             except TimeoutException:
                 if deneme < self.max_deneme:
                     print(f"[Uyarı] Sayfa yüklenemedi, {deneme + 1}. deneme yapılıyor...")
-                    self.rastgele_bekleme(1, 2)
                     return self.sayfa_verilerini_cek(url, deneme + 1)
                 else:
                     print("[Hata] Maksimum deneme sayısına ulaşıldı, sayfa atlanıyor.")
@@ -355,7 +355,6 @@ class SahibindenScraper:
             if not ilan_elemanlari:
                 if deneme < self.max_deneme:
                     print("[Uyarı] İlan bulunamadı, sayfa yeniden yükleniyor...")
-                    self.rastgele_bekleme(1, 2)
                     return self.sayfa_verilerini_cek(url, deneme + 1)
                 else:
                     print("[Hata] İlan bulunamadı, sayfa atlanıyor.")
@@ -411,9 +410,6 @@ class SahibindenScraper:
                     self.sayfa_ilan_sayisi += 1
                     print(f"[Başarılı] ({i}/{len(ilan_elemanlari)}) İlan eklendi: {baslik[:50]}...")
                     
-                    # Her ilan sonrası kısa bir bekleme süresi
-                    self.rastgele_bekleme(0.5, 1.5)
-                    
                 except AttributeError as e:
                     print(f"[Hata] ({i}/{len(ilan_elemanlari)}) İlan verisi çekilirken hata: {e}")
                     continue
@@ -432,12 +428,41 @@ class SahibindenScraper:
         finally:
             print(f"[Özet] Bu sayfadan toplam {self.sayfa_ilan_sayisi} ilan başarıyla çekildi")
             
+    def turkce_karakterleri_temizle(self, metin):
+        """Türkçe karakterleri İngilizce karakterlere çevirir"""
+        return metin.translate(self.tr_to_eng).lower()
+
     def filtreli_url_olustur(self, kategori, base_url, **kwargs):
         """Seçilen filtrelere göre URL oluşturur"""
         print(f"[Debug] URL oluşturuluyor... Kategori: {kategori}, Parametreler: {kwargs}")
         
-        if kategori == "Cep Telefonu":
-            # Cep telefonu için URL oluşturma
+        if kategori == "Emlak":
+            # Emlak için URL oluşturma
+            durum = kwargs.get('durum', 'satilik')  # Varsayılan olarak satılık
+            sehir = kwargs.get('sehir', '')
+            offset = kwargs.get('offset')
+            
+            # Base URL'yi oluştur
+            url = f"https://www.sahibinden.com/{durum}"
+            
+            # Şehir ekle
+            if sehir:
+                sehir_adi = list(self.sehirler.keys())[list(self.sehirler.values()).index(sehir)]
+                # Türkçe karakterleri temizle
+                sehir_adi = self.turkce_karakterleri_temizle(sehir_adi)
+                url = f"{url}/{sehir_adi}"
+            
+            # Offset ekle
+            if offset is not None:
+                url = f"{url}?pagingOffset={offset}"
+            elif '?' not in url:
+                url = f"{url}?pagingOffset=0"
+            
+            print(f"[Debug] Oluşturulan URL: {url}")
+            return url
+            
+        elif kategori == "Cep Telefonu":
+            # Cep telefonu için mevcut URL oluşturma mantığı
             url_parcalari = [base_url]
             durum = kwargs.get('durum')
             marka = kwargs.get('marka')
@@ -450,44 +475,16 @@ class SahibindenScraper:
                     url_parcalari[-1] = marka + "/" + url_parcalari[-1]
                 else:
                     url_parcalari.append(marka)
-                    
-        elif kategori == "Emlak":
-            # Emlak için URL oluşturma
-            ana_kategori = kwargs.get('ana_kategori')
-            durum = kwargs.get('durum')
-            sehir = kwargs.get('sehir')
             
-            print(f"[Debug] Emlak parametreleri - Ana Kategori: {ana_kategori}, Durum: {durum}, Şehir: {sehir}")
+            # URL'yi birleştir
+            url = "/".join([p for p in url_parcalari if p and not p.startswith('?')])
             
-            # Base URL'yi oluştur
-            url_parcalari = ["https://www.sahibinden.com"]
-            
-            # URL'yi oluştur
-            if ana_kategori and durum:
-                try:
-                    url_parcalari.append(durum)  # Direkt durum değerini kullan
-                except Exception as e:
-                    print(f"[Hata] URL oluşturulurken hata: {e}")
-            
-            # Şehir ekle
-            if sehir:
-                try:
-                    # Şehir plaka kodunu kullan
-                    url_parcalari.append(f"?address_city={sehir}")
-                except Exception as e:
-                    print(f"[Hata] Şehir eklenirken hata: {e}")
-        
-        # URL'yi birleştir
-        url = "/".join([p for p in url_parcalari if p and not p.startswith('?')])
-        
-        # Filtreleri ekle
-        filtreler = []
-        
-        if kategori == "Cep Telefonu":
-            # Cep telefonu filtreleri
+            # Filtreleri ekle
+            filtreler = []
             sehir = kwargs.get('sehir')
             ram = kwargs.get('ram')
             renk = kwargs.get('renk')
+            offset = kwargs.get('offset')
             
             if sehir:
                 filtreler.append(f"address_city={sehir}")
@@ -495,34 +492,16 @@ class SahibindenScraper:
                 filtreler.append(f"a103916={ram}")
             if renk:
                 filtreler.append(f"a46187={renk}")
+            if offset is not None:
+                filtreler.append(f"pagingOffset={offset}")
                 
-        elif kategori == "Emlak":
-            # Emlak filtreleri
-            if ana_kategori in ["Konut", "Daire"]:
-                oda_sayisi = kwargs.get('oda_sayisi')
-                isitma_tipi = kwargs.get('isitma_tipi')
-                
-                if oda_sayisi:
-                    filtreler.append(f"a5943={oda_sayisi}")
-                if isitma_tipi:
-                    filtreler.append(f"a5946={isitma_tipi}")
-                
-                # Şehir filtresi
-                if sehir and not any(p.startswith('?address_city=') for p in url_parcalari):
-                    filtreler.append(f"address_city={sehir}")
-        
-        # Sayfalama için offset
-        offset = kwargs.get('offset')
-        if offset is not None:
-            filtreler.append(f"pagingOffset={offset}")
+            # Filtreleri URL'ye ekle
+            if filtreler:
+                url = url + ('&' if '?' in url else '?') + "&".join(filtreler)
             
-        # Filtreleri URL'ye ekle
-        if filtreler:
-            url = url + ('&' if '?' in url else '?') + "&".join(filtreler)
-            
-        print(f"[Debug] Oluşturulan URL: {url}")
-        return url
-        
+            print(f"[Debug] Oluşturulan URL: {url}")
+            return url
+
     def veri_topla_filtreli(self, kategori, **kwargs):
         """Filtrelere göre veri toplama"""
         try:
@@ -542,6 +521,7 @@ class SahibindenScraper:
                     kwargs.get('renk'), 
                     kwargs.get('durum')
                 ]))
+                base_url = self.kategoriler[kategori]["base_url"]
             else:  # Emlak
                 filtre_bilgisi = "_".join(filter(None, [
                     kwargs.get('sehir'),
@@ -549,6 +529,7 @@ class SahibindenScraper:
                     kwargs.get('oda_sayisi'),
                     kwargs.get('isitma_tipi')
                 ]))
+                base_url = None  # Emlak için base_url kullanılmıyor
                 
             dosya_adi = f"{kategori.lower().replace(' ', '_')}_{filtre_bilgisi}_{tarih}.json"
             
@@ -593,6 +574,111 @@ class SahibindenScraper:
             
         finally:
             self.tarayici_kapat()
+
+    def tum_illeri_tara(self, kategori, **kwargs):
+        """Tüm illeri sırayla tarar"""
+        try:
+            # Ana klasörü oluştur
+            ana_klasor = "JSONLAR"
+            if not os.path.exists(ana_klasor):
+                os.makedirs(ana_klasor)
+                print("[Bilgi] JSONLAR klasörü oluşturuldu")
+
+            # Alt klasör adını oluştur
+            durum = kwargs.get('durum', 'satilik').replace('-', '')
+            ana_kategori = kwargs.get('ana_kategori', '')
+            oda = kwargs.get('oda_sayisi', '')
+            isitma = kwargs.get('isitma_tipi', '')
+            
+            alt_klasor = f"TumIller{durum.title()}{ana_kategori}"
+            if oda:
+                for k, v in self.oda_sayilari.items():
+                    if v == oda:
+                        alt_klasor += k.replace('+', 'Arti')
+                        break
+            if isitma:
+                for k, v in self.isitma_tipleri.items():
+                    if v == isitma:
+                        alt_klasor += k.replace(' ', '')
+                        break
+            
+            alt_klasor_yolu = os.path.join(ana_klasor, alt_klasor)
+            if not os.path.exists(alt_klasor_yolu):
+                os.makedirs(alt_klasor_yolu)
+                print(f"[Bilgi] {alt_klasor} klasörü oluşturuldu")
+
+            # Ankara'yı ilk sıraya al ve diğer illeri ekle
+            sehir_listesi = ["6"]  # Ankara
+            diger_sehirler = [plaka for plaka in self.sehirler.values() if plaka != "6"]
+            sehir_listesi.extend(diger_sehirler)
+            
+            toplam_ilan = 0
+            
+            for sehir in sehir_listesi:
+                sehir_adi = list(self.sehirler.keys())[list(self.sehirler.values()).index(sehir)]
+                print(f"\n[Bilgi] {sehir_adi} için tarama başlıyor...")
+                
+                try:
+                    self.tarayici_baslat()
+                    il_ilan_sayisi = 0
+                    
+                    # JSON dosya adını oluştur
+                    dosya_adi = f"{sehir_adi}.json"
+                    dosya_yolu = os.path.join(alt_klasor_yolu, dosya_adi)
+                    
+                    # 50 sayfa tara
+                    for sayfa in range(50):
+                        # URL oluştur
+                        offset = sayfa * 20
+                        # Türkçe karakterleri temizle
+                        temiz_sehir_adi = self.turkce_karakterleri_temizle(sehir_adi)
+                        url = f"https://www.sahibinden.com/{kwargs.get('durum', 'satilik')}/{temiz_sehir_adi}?pagingOffset={offset}"
+                        
+                        print(f"\n[Sayfa {sayfa + 1}/50] Taranıyor...")
+                        print(f"[Debug] URL: {url}")
+                        
+                        self.sayfa_verilerini_cek(url)
+                        il_ilan_sayisi += self.sayfa_ilan_sayisi
+                        
+                        # Her sayfa sonrası verileri kaydet
+                        print(f"\n[Kayıt] Veriler {dosya_adi} dosyasına kaydediliyor...")
+                        with open(dosya_yolu, 'w', encoding='utf-8') as f:
+                            json.dump(self.ilanlar, f, ensure_ascii=False, indent=2)
+                        
+                        # Eğer sayfa boşsa sonraki ile geç
+                        if self.sayfa_ilan_sayisi == 0:
+                            print("[Bilgi] Bu şehirde daha fazla ilan bulunamadı.")
+                            break
+                            
+                        # Sonraki sayfaya geçmeden önce bekleme
+                        self.rastgele_bekleme(1, 2)
+                    
+                    toplam_ilan += il_ilan_sayisi
+                    print(f"\n[Özet] {sehir_adi} için toplam {il_ilan_sayisi} ilan çekildi.")
+                    print(f"[Bilgi] Veriler {dosya_yolu} dosyasına kaydedildi.")
+                    
+                    # İller arası bekleme
+                    print("\n[Bilgi] Sonraki ile geçmeden önce bekleniyor...")
+                    self.rastgele_bekleme(3, 5)
+                    
+                finally:
+                    self.tarayici_kapat()
+                    # Her il sonrası ilanları temizle
+                    self.ilanlar = []
+            
+            print(f"\n[Final Özet] Tüm iller için toplam {toplam_ilan} ilan başarıyla çekildi.")
+            print(f"[Bilgi] Tüm veriler {alt_klasor_yolu} klasörüne kaydedildi.")
+            
+        except KeyboardInterrupt:
+            print("\n\n[Bilgi] Kullanıcı tarafından durduruldu!")
+            print(f"[Özet] O ana kadar toplam {toplam_ilan} ilan çekildi")
+            
+        except Exception as e:
+            print(f"\n[Hata] Beklenmeyen hata: {e}")
+            
+        finally:
+            if self.driver:
+                self.tarayici_kapat()
 
 def kullanici_arayuzu():
     """Kullanıcı arayüzü ile kategori ve filtre seçimi"""
@@ -694,16 +780,24 @@ def kullanici_arayuzu():
         for i, durum in enumerate(durumlar, 1):
             print(f"{i}. {durum}")
         durum_secim = int(input(f"\nDurum seçiniz (1-{len(durumlar)}): "))
-        secilen_durum = durumlar[durum_secim-1]
+        secilen_durum = scraper.kategoriler["Emlak"]["alt_kategoriler"][secilen_ana]["durumlar"][durumlar[durum_secim-1]]
         
-        # Şehir seçimi
-        print("\nŞehir Seçimi:")
-        print("0. Tüm Şehirler")
-        sehir_listesi = list(scraper.sehirler.keys())
-        for i, sehir in enumerate(sehir_listesi, 1):
-            print(f"{i}. {sehir}")
-        sehir_secim = int(input("\nŞehir seçiniz (0-81): "))
-        secilen_sehir = sehir_listesi[sehir_secim-1] if sehir_secim > 0 else None
+        # Tarama tipi seçimi
+        print("\nTarama Tipi Seçimi:")
+        print("1. Tek Şehir")
+        print("2. Tüm Şehirler (Ankara'dan başlayarak)")
+        tarama_tipi = int(input("\nTarama tipini seçiniz (1-2): "))
+        
+        secilen_sehir = None
+        if tarama_tipi == 1:
+            # Şehir seçimi
+            print("\nŞehir Seçimi:")
+            print("0. Tüm Şehirler")
+            sehir_listesi = list(scraper.sehirler.keys())
+            for i, sehir in enumerate(sehir_listesi, 1):
+                print(f"{i}. {sehir}")
+            sehir_secim = int(input("\nŞehir seçiniz (0-81): "))
+            secilen_sehir = scraper.sehirler[sehir_listesi[sehir_secim-1]] if sehir_secim > 0 else None
         
         # Oda sayısı seçimi (sadece konut ve daire kategorisi için)
         secilen_oda = None
@@ -732,7 +826,10 @@ def kullanici_arayuzu():
         print(f"Kategori: {secilen_kategori}")
         print(f"Ana Kategori: {secilen_ana}")
         print(f"Durum: {secilen_durum}")
-        print(f"Şehir: {sehir_listesi[sehir_secim-1] if sehir_secim > 0 else 'Tümü'}")
+        if tarama_tipi == 1:
+            print(f"Şehir: {sehir_listesi[sehir_secim-1] if sehir_secim > 0 else 'Tümü'}")
+        else:
+            print("Tarama: Tüm şehirler (Ankara'dan başlayarak)")
         if secilen_ana in ["Konut", "Daire"]:
             print(f"Oda Sayısı: {oda_listesi[oda_secim-1] if oda_secim > 0 else 'Tümü'}")
             print(f"Isıtma Tipi: {isitma_listesi[isitma_secim-1] if isitma_secim > 0 else 'Tümü'}")
@@ -740,14 +837,19 @@ def kullanici_arayuzu():
         # Veri toplama işlemini başlat
         onay = input("\nVeri çekme işlemini başlatmak istiyor musunuz? (E/H): ")
         if onay.lower() == 'e':
-            scraper.veri_topla_filtreli(
-                kategori=secilen_kategori,
-                ana_kategori=secilen_ana,
-                durum=secilen_durum,
-                sehir=secilen_sehir,
-                oda_sayisi=secilen_oda,
-                isitma_tipi=secilen_isitma
-            )
+            params = {
+                "kategori": secilen_kategori,
+                "ana_kategori": secilen_ana,
+                "durum": secilen_durum,
+                "oda_sayisi": secilen_oda,
+                "isitma_tipi": secilen_isitma
+            }
+            
+            if tarama_tipi == 1:
+                params["sehir"] = secilen_sehir
+                scraper.veri_topla_filtreli(**params)
+            else:
+                scraper.tum_illeri_tara(**params)
         else:
             print("İşlem iptal edildi.")
     else:
