@@ -243,6 +243,9 @@ class SahibindenScraper:
         self.driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
         print("[Başlangıç] Tarayıcı başlatıldı")
         
+        # Başlangıçta kısa bir bekleme
+        self.rastgele_bekleme(1, 2)
+        
     def tarayici_kapat(self):
         if self.driver:
             print("[Bitiş] Tarayıcı kapatılıyor...")
@@ -408,6 +411,9 @@ class SahibindenScraper:
                     self.sayfa_ilan_sayisi += 1
                     print(f"[Başarılı] ({i}/{len(ilan_elemanlari)}) İlan eklendi: {baslik[:50]}...")
                     
+                    # Her ilan sonrası kısa bir bekleme süresi
+                    self.rastgele_bekleme(0.5, 1.5)
+                    
                 except AttributeError as e:
                     print(f"[Hata] ({i}/{len(ilan_elemanlari)}) İlan verisi çekilirken hata: {e}")
                     continue
@@ -546,8 +552,6 @@ class SahibindenScraper:
                 
             dosya_adi = f"{kategori.lower().replace(' ', '_')}_{filtre_bilgisi}_{tarih}.json"
             
-            base_url = self.kategoriler[kategori]["base_url"]
-            
             print(f"\n[Başlangıç] {kategori} için veri toplama işlemi başlıyor...")
             
             # Seçilen filtreleri göster
@@ -575,6 +579,9 @@ class SahibindenScraper:
                 with open(dosya_adi, 'w', encoding='utf-8') as f:
                     json.dump(self.ilanlar, f, ensure_ascii=False, indent=2)
                 print(f"[Özet] Toplam ilan sayısı: {toplam_ilan}")
+                
+                # Sonraki sayfaya geçmeden önce bekleme
+                self.rastgele_bekleme(2, 4)
                 
                 # Sonraki sayfaya geç
                 sayfa += 1
