@@ -377,14 +377,15 @@ class SahibindenScraper:
                     kat_sayisi = "Belirtilmemiş"
                     bina_yasi = "Belirtilmemiş"
                     
-                    # Detayları kontrol et ve değerleri güncelle
-                    for detay in detaylar:
+                    # Metrekare ve oda sayısı bilgilerini direkt td'lerden al
+                    if len(detaylar) >= 2:
+                        metrekare = detaylar[0].text.strip() + " m²"
+                        oda_sayisi = detaylar[1].text.strip()
+                    
+                    # Diğer detayları kontrol et
+                    for detay in detaylar[2:]:
                         detay_text = detay.text.strip()
-                        if "m²" in detay_text:
-                            metrekare = detay_text
-                        elif "+" in detay_text or "Stüdyo" in detay_text:
-                            oda_sayisi = detay_text
-                        elif any(tip in detay_text for tip in ["Kombi", "Soba", "Merkezi", "Klima", "Isıtma"]):
+                        if any(tip in detay_text for tip in ["Kombi", "Soba", "Merkezi", "Klima", "Isıtma"]):
                             isitma_tipi = detay_text
                         elif ". Kat" in detay_text:
                             kat_sayisi = detay_text
