@@ -1,26 +1,46 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import { CssBaseline, ThemeProvider, createTheme } from '@mui/material'
+import { ChakraProvider, extendTheme } from '@chakra-ui/react'
 import App from './App'
 import './index.css'
 
-const theme = createTheme({
-  palette: {
-    mode: 'light',
-    primary: {
-      main: '#1976d2',
+const config = {
+  initialColorMode: 'light',
+  useSystemColorMode: true,
+}
+
+const theme = extendTheme({
+  config,
+  styles: {
+    global: (props) => ({
+      body: {
+        bg: props.colorMode === 'light' ? 'gray.50' : 'gray.800',
+      },
+    }),
+  },
+  components: {
+    Button: {
+      defaultProps: {
+        colorScheme: 'blue',
+      },
     },
-    secondary: {
-      main: '#dc004e',
+    Select: {
+      defaultProps: {
+        focusBorderColor: 'blue.500',
+      },
+    },
+    Input: {
+      defaultProps: {
+        focusBorderColor: 'blue.500',
+      },
     },
   },
 })
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
+    <ChakraProvider theme={theme}>
       <App />
-    </ThemeProvider>
+    </ChakraProvider>
   </React.StrictMode>,
 )

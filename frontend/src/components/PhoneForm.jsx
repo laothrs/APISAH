@@ -1,15 +1,15 @@
 import React, { useState } from 'react'
 import {
-  Paper,
-  Grid,
+  Box,
   FormControl,
-  InputLabel,
+  FormLabel,
   Select,
-  MenuItem,
   Button,
-  Snackbar,
-  Alert
-} from '@mui/material'
+  VStack,
+  useToast,
+  SimpleGrid,
+  useColorModeValue
+} from '@chakra-ui/react'
 import axios from 'axios'
 import { cities } from '../data/cities'
 import { brands, ramOptions, colors, conditions } from '../data/phoneOptions'
@@ -22,12 +22,10 @@ function PhoneForm() {
     renk: '',
     durum: ''
   })
-  
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: '',
-    severity: 'success'
-  })
+
+  const toast = useToast()
+  const bgColor = useColorModeValue('white', 'gray.700')
+  const borderColor = useColorModeValue('gray.200', 'gray.600')
 
   const handleChange = (event) => {
     const { name, value } = event.target
@@ -41,161 +39,132 @@ function PhoneForm() {
     event.preventDefault()
     try {
       const response = await axios.post('http://127.0.0.1:5000/api/scrape/phone', formData)
-      setSnackbar({
-        open: true,
-        message: `İşlem başlatıldı! İşlem ID: ${response.data.job_id}`,
-        severity: 'success'
+      toast({
+        title: 'İşlem Başlatıldı',
+        description: `İşlem ID: ${response.data.job_id}`,
+        status: 'success',
+        duration: 5000,
+        isClosable: true,
+        position: 'top-right'
       })
     } catch (error) {
-      setSnackbar({
-        open: true,
-        message: 'Bir hata oluştu: ' + error.message,
-        severity: 'error'
+      toast({
+        title: 'Hata',
+        description: error.message,
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+        position: 'top-right'
       })
     }
   }
 
-  const handleCloseSnackbar = () => {
-    setSnackbar(prev => ({ ...prev, open: false }))
-  }
-
   return (
-    <Paper sx={{ p: 3 }}>
-      <form onSubmit={handleSubmit}>
-        <Grid container spacing={3}>
-          <Grid item xs={12} sm={6}>
-            <FormControl fullWidth>
-              <InputLabel>Şehir</InputLabel>
-              <Select
-                name="sehir"
-                value={formData.sehir}
-                onChange={handleChange}
-                label="Şehir"
-              >
-                <MenuItem value="">
-                  <em>Seçiniz</em>
-                </MenuItem>
-                {Object.entries(cities).map(([value, label]) => (
-                  <MenuItem key={value} value={value}>
-                    {label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-
-          <Grid item xs={12} sm={6}>
-            <FormControl fullWidth>
-              <InputLabel>Marka</InputLabel>
-              <Select
-                name="marka"
-                value={formData.marka}
-                onChange={handleChange}
-                label="Marka"
-              >
-                <MenuItem value="">
-                  <em>Seçiniz</em>
-                </MenuItem>
-                {Object.entries(brands).map(([value, label]) => (
-                  <MenuItem key={value} value={value}>
-                    {label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-
-          <Grid item xs={12} sm={6}>
-            <FormControl fullWidth>
-              <InputLabel>RAM</InputLabel>
-              <Select
-                name="ram"
-                value={formData.ram}
-                onChange={handleChange}
-                label="RAM"
-              >
-                <MenuItem value="">
-                  <em>Seçiniz</em>
-                </MenuItem>
-                {Object.entries(ramOptions).map(([value, label]) => (
-                  <MenuItem key={value} value={value}>
-                    {label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-
-          <Grid item xs={12} sm={6}>
-            <FormControl fullWidth>
-              <InputLabel>Renk</InputLabel>
-              <Select
-                name="renk"
-                value={formData.renk}
-                onChange={handleChange}
-                label="Renk"
-              >
-                <MenuItem value="">
-                  <em>Seçiniz</em>
-                </MenuItem>
-                {Object.entries(colors).map(([value, label]) => (
-                  <MenuItem key={value} value={value}>
-                    {label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-
-          <Grid item xs={12} sm={6}>
-            <FormControl fullWidth>
-              <InputLabel>Durum</InputLabel>
-              <Select
-                name="durum"
-                value={formData.durum}
-                onChange={handleChange}
-                label="Durum"
-              >
-                <MenuItem value="">
-                  <em>Seçiniz</em>
-                </MenuItem>
-                {Object.entries(conditions).map(([value, label]) => (
-                  <MenuItem key={value} value={value}>
-                    {label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-
-          <Grid item xs={12}>
-            <Button
-              type="submit"
-              variant="contained"
-              color="primary"
-              fullWidth
-              size="large"
+    <Box
+      as="form"
+      onSubmit={handleSubmit}
+      bg={bgColor}
+      p={6}
+      borderRadius="lg"
+      boxShadow="sm"
+      border="1px"
+      borderColor={borderColor}
+    >
+      <VStack spacing={6}>
+        <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6} width="100%">
+          <FormControl>
+            <FormLabel>Şehir</FormLabel>
+            <Select
+              name="sehir"
+              value={formData.sehir}
+              onChange={handleChange}
+              placeholder="Seçiniz"
             >
-              İlanları Getir
-            </Button>
-          </Grid>
-        </Grid>
-      </form>
+              {Object.entries(cities).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </Select>
+          </FormControl>
 
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={handleCloseSnackbar}
-      >
-        <Alert
-          onClose={handleCloseSnackbar}
-          severity={snackbar.severity}
-          sx={{ width: '100%' }}
+          <FormControl>
+            <FormLabel>Marka</FormLabel>
+            <Select
+              name="marka"
+              value={formData.marka}
+              onChange={handleChange}
+              placeholder="Seçiniz"
+            >
+              {Object.entries(brands).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </Select>
+          </FormControl>
+
+          <FormControl>
+            <FormLabel>RAM</FormLabel>
+            <Select
+              name="ram"
+              value={formData.ram}
+              onChange={handleChange}
+              placeholder="Seçiniz"
+            >
+              {Object.entries(ramOptions).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </Select>
+          </FormControl>
+
+          <FormControl>
+            <FormLabel>Renk</FormLabel>
+            <Select
+              name="renk"
+              value={formData.renk}
+              onChange={handleChange}
+              placeholder="Seçiniz"
+            >
+              {Object.entries(colors).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </Select>
+          </FormControl>
+
+          <FormControl>
+            <FormLabel>Durum</FormLabel>
+            <Select
+              name="durum"
+              value={formData.durum}
+              onChange={handleChange}
+              placeholder="Seçiniz"
+            >
+              {Object.entries(conditions).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </Select>
+          </FormControl>
+        </SimpleGrid>
+
+        <Button
+          type="submit"
+          colorScheme="blue"
+          size="lg"
+          width="100%"
+          mt={4}
+          loadingText="İşlem başlatılıyor..."
         >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </Paper>
+          İlanları Getir
+        </Button>
+      </VStack>
+    </Box>
   )
 }
 
