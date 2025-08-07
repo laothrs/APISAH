@@ -1,4 +1,4 @@
-# Veri Çekme API'si
+# Veri Çekme API'si  (SADECE EGITIM AMACLIDIR HICBIR YASAL YUKUMLULUK VESAIRE YOKTUR SORUMLULUK BANA DEGIL KULLANAN KISIYE AITTIR)
 
 Bu proje,  üzerinden cep telefonu ve emlak kategorilerindeki ilanları otomatik olarak çekebilen bir API ve web arayüzü sunar.
 
