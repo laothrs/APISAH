@@ -1,3 +1,4 @@
+CURSOR AI IDE TEST PROJESİDİR PROJE TAMAMIYLE CURSOR UZERINDEN YAPILMIŞTIR
 # Veri Çekme API'si  (SADECE EGITIM AMACLIDIR HICBIR YASAL YUKUMLULUK VESAIRE YOKTUR SORUMLULUK BANA DEGIL KULLANAN KISIYE AITTIR)
 
 Bu proje,  üzerinden cep telefonu ve emlak kategorilerindeki ilanları otomatik olarak çekebilen bir API ve web arayüzü sunar.
